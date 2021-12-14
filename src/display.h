@@ -11,8 +11,33 @@ Ucglib_ST7735_18x128x160_HWSPI ucg(DISPLAY_CD, DISPLAY_CS, DISPLAY_RESET);
 /**************************************************************/
 /* DRAWINGS                                                   */
 /**************************************************************/
+void drawSteam(uint8_t _xPos, uint8_t _yPos, bool steamState)
+{
+  int x;
+  steamState ? x = 6 : x = 0;
 
-void drawMug(uint8_t _xPos, uint8_t _yPos)
+  //clear
+  ucg.setColor(0, 0, 0);
+  ucg.drawBox(_xPos, _yPos - 20, 30, 20);
+  // delay(50);
+
+  ucg.setColor(90, 90, 90);
+  ucg.drawBox(57 + x, 25 + x / 2, 2, 2);
+  ucg.drawBox(59 + x, 27 + x / 2, 2, 2);
+  ucg.drawBox(58 + x, 29 + x / 2, 1, 4);
+  ucg.drawBox(59 + x, 33 + x / 2, 2, 4);
+  ucg.drawBox(58 + x, 37 + x / 2, 1, 2);
+
+  ucg.setColor(80, 80, 80);
+  ucg.drawBox(65 - x, 25, 2, 2);
+  ucg.drawBox(63 - x, 27, 2, 4);
+  ucg.drawBox(65 - x, 31, 2, 2);
+  ucg.drawBox(63 - x, 33, 2, 2);
+  ucg.drawBox(64 - x, 35, 1, 2);
+  ucg.drawBox(63 - x, 37, 2, 2);
+}
+
+void drawMug(uint8_t _xPos, uint8_t _yPos, bool steamState)
 {
   // Top
   ucg.setColor(255, 255, 255);
@@ -167,25 +192,11 @@ void drawMug(uint8_t _xPos, uint8_t _yPos)
 
   ucg.drawBox(_xPos + 30, _yPos + 11, 1, 13);
 
-  // Steam
-  ucg.setColor(90, 90, 90);
-  ucg.drawBox(57, 25, 2, 2);
-  ucg.drawBox(59, 27, 2, 2);
-  ucg.drawBox(58, 29, 1, 4);
-  ucg.drawBox(59, 33, 2, 4);
-  ucg.drawBox(58, 37, 1, 2);
+  drawSteam(_xPos, _yPos, steamState);
 
-  ucg.setColor(80, 80, 80);
-  ucg.drawBox(65, 25, 2, 2);
-  ucg.drawBox(63, 27, 2, 4);
-  ucg.drawBox(65, 31, 2, 2);
-  ucg.drawBox(63, 33, 2, 2);
-  ucg.drawBox(64, 35, 1, 2);
-  ucg.drawBox(63, 37, 2, 2);
-
-  // ucg.setColor( 70, 70, 70 );
-  // ucg.setPrintPos( 19, 130 );
-  // ucg.print( "@larsenpedersen" );
+  //  ucg.setColor( 70, 70, 70 );
+  //  ucg.setPrintPos( 19, 130 );
+  //  ucg.print( "steamState: " + steamState );
 }
 
 void drawBean(uint8_t _xPos, uint8_t _yPos)
@@ -312,17 +323,17 @@ void clearHalfBottom()
   ucg.drawBox(0, 80, 128, 80);
 }
 
-void screenDefault()
+void screenDefault(bool steamState)
 {
   ucg.clearScreen();
-  drawMug(50, 45);
+  drawMug(50, 45, steamState);
   ucg.setFont(ucg_font_6x10_tr);
   ucg.setColor(255, 255, 255);
   ucg.setPrintPos(22, 110);
   ucg.print("COFFEE GRINDER");
 
   // ucg.setColor(70, 70, 70);
-  ucg.setColor( 255, 0, 0 );
+  ucg.setColor(255, 0, 0);
   ucg.setPrintPos(10, 150);
   ucg.print("(c) Arneth Edition");
 }
