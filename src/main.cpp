@@ -80,7 +80,8 @@ void renderDisplay()
     switch (currentMenu)
     {
     case 0:
-      screenDefault(steamState);
+      // screenDefault(steamState);
+      screenManualGrind();
       break;
 
     case 1:
@@ -108,19 +109,20 @@ void renderDisplay()
       break;
 
     default:
-      screenDefault(steamState);
+      screenManualGrind();
+      // screenDefault(steamState);
       break;
     }
   }
   else if (currentMenu == 0 && reRenderStream)
   {
     reRenderStream = !reRenderStream;
-    drawSteam(50, 45, steamState);
+    // drawSteam(50, 45, steamState);
   }
   else if (currentMenu == 0 && reRenderStream)
   {
     reRenderStream = !reRenderStream;
-    drawSteam(50, 45, steamState);
+    // drawSteam(50, 45, steamState);
   }
 }
 

@@ -194,9 +194,25 @@ void drawMug(uint8_t _xPos, uint8_t _yPos, bool steamState)
 
   drawSteam(_xPos, _yPos, steamState);
 
-  //  ucg.setColor( 70, 70, 70 );
-  //  ucg.setPrintPos( 19, 130 );
-  //  ucg.print( "steamState: " + steamState );
+}
+
+void drawGrinder(uint8_t xPos, uint8_t yPos)
+{
+  // ucg.setColor(180, 125, 73); //light
+  // ucg.drawBox(xPos, yPos, 40, 40);
+  
+  ucg.setColor(0, 0, 40, 80);
+  ucg.setColor(1, 80, 0, 40);
+  ucg.setColor(2, 255, 0, 255);
+  ucg.setColor(3, 0, 255, 255);
+
+  ucg.drawGradientBox(xPos, yPos, 40, 40);
+  ucg.setColor(91, 58, 41); //dark
+  ucg.drawFrame(xPos, yPos, 40, 40);
+  ucg.drawFrame(xPos+1, yPos+1, 38, 38);
+  ucg.drawFrame(xPos + 10, yPos + 10, 20, 20);
+  ucg.drawFrame(xPos + 11, yPos + 11, 18, 18);
+  ucg.drawBox(xPos + 17, yPos - 6, 6, 6);
 }
 
 void drawBean(uint8_t _xPos, uint8_t _yPos)
@@ -341,7 +357,7 @@ void screenDefault(bool steamState)
 void screenManualGrind()
 {
   ucg.clearScreen();
-  drawBean(50, 45);
+  drawGrinder(45, 45);
   ucg.setFont(ucg_font_6x10_tr);
   ucg.setColor(255, 255, 255);
   ucg.setPrintPos(30, 110);
@@ -355,12 +371,6 @@ void screenManualGrind()
 void screenSingleShot()
 {
   ucg.clearScreen();
-  // drawBean( 35, 45 );
-  // ucg.setFont( ucg_font_6x10_tr );
-  // ucg.setColor( 255, 255, 255 );
-  // ucg.setPrintPos( 75, 65 );
-  // ucg.print( "x 1" );
-  // ucg.setPrintPos( 33, 110 );
   drawBean(50, 45);
   ucg.setFont(ucg_font_6x10_tr);
   ucg.setColor(255, 255, 255);
@@ -375,12 +385,6 @@ void screenSingleShot()
 void screenDoubleShot()
 {
   ucg.clearScreen();
-  // drawBean( 35, 45 );
-  // ucg.setFont( ucg_font_6x10_tr );
-  // ucg.setColor( 255, 255, 255 );
-  // ucg.setPrintPos( 75, 65 );
-  // ucg.print( "x 2" );
-  // ucg.setPrintPos( 33, 110 );
   drawBean(30, 43);
   drawBean(70, 47);
   ucg.setFont(ucg_font_6x10_tr);
