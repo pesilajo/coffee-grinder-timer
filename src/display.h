@@ -193,23 +193,51 @@ void drawMug(uint8_t _xPos, uint8_t _yPos, bool steamState)
   ucg.drawBox(_xPos + 30, _yPos + 11, 1, 13);
 
   drawSteam(_xPos, _yPos, steamState);
+}
 
+void resetColor()
+{
+  ucg.setColor(0, 0, 0, 0);
+  ucg.setColor(1, 0, 0, 0);
+  ucg.setColor(2, 0, 0, 0);
+  ucg.setColor(3, 0, 0, 0);
+}
+
+void testBlock()
+{
+  ucg.setColor(222, 184, 135);
+  ucg.drawBox(0, 10, 10, 10);
+
+  ucg.setColor(255, 211, 155);
+  ucg.drawBox(15, 10, 10, 10);
+
+  ucg.setColor(139, 115, 85);
+  ucg.drawBox(30, 10, 10, 10);
+
+  ucg.setColor(139, 69, 19);
+  ucg.drawBox(45, 10, 10, 10); //
+
+  ucg.setColor(91, 58, 41);
+  ucg.drawBox(60, 10, 10, 10);
+
+  ucg.setColor(205, 133, 63);
+  ucg.drawBox(75, 10, 10, 10);
 }
 
 void drawGrinder(uint8_t xPos, uint8_t yPos)
 {
-  // ucg.setColor(180, 125, 73); //light
-  // ucg.drawBox(xPos, yPos, 40, 40);
-  
-  ucg.setColor(0, 0, 40, 80);
-  ucg.setColor(1, 80, 0, 40);
-  ucg.setColor(2, 255, 0, 255);
-  ucg.setColor(3, 0, 255, 255);
+  testBlock();
 
+  ucg.setColor(0, 222, 184, 135);
+  ucg.setColor(1, 255, 211, 155);
+  ucg.setColor(2, 139, 115, 85);
+  ucg.setColor(3, 139, 69, 19);
   ucg.drawGradientBox(xPos, yPos, 40, 40);
+  resetColor();
+
   ucg.setColor(91, 58, 41); //dark
   ucg.drawFrame(xPos, yPos, 40, 40);
-  ucg.drawFrame(xPos+1, yPos+1, 38, 38);
+  ucg.drawFrame(xPos + 1, yPos + 1, 38, 38);
   ucg.drawFrame(xPos + 10, yPos + 10, 20, 20);
   ucg.drawFrame(xPos + 11, yPos + 11, 18, 18);
   ucg.drawBox(xPos + 17, yPos - 6, 6, 6);
