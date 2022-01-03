@@ -25,8 +25,6 @@
 
 // Relay settings
 #define RELAY 2 // Relay on pin D2
-// #define RELAY_ON LOW
-// #define RELAY_OFF HIGH
 #define RELAY_ON HIGH
 #define RELAY_OFF LOW
 
@@ -55,12 +53,12 @@ bool returnToStarMenu = false;
 uint32_t grindUntil = 0;
 
 uint32_t currentMillis = 0;
-uint32_t previousMillis = 0;   // will store last time
-uint32_t interval = 500;       // interval at which to blink (milliseconds)
+uint32_t previousMillis = 0; // will store last time
+uint32_t interval = 500;     // interval at which to blink (milliseconds)
 
 uint32_t menueMillis = 0;
-uint32_t previousMenueMillis = 0;   // will store last time
-uint32_t menueInterval = 5000; // time before reset to startmenu
+uint32_t previousMenueMillis = 0; // will store last time
+uint32_t menueInterval = 5000;    // time before reset to startmenu
 
 ClickEncoder *encoder;
 
@@ -80,20 +78,19 @@ void renderDisplay()
     switch (currentMenu)
     {
     case 0:
-      // screenDefault(steamState);
-      screenManualGrind();
+      screenDefault(steamState, currentMenu);
       break;
 
     case 1:
-      screenManualGrind();
+      screenManualGrind(currentMenu);
       break;
 
     case 2:
-      screenSingleShot();
+      screenSingleShot(currentMenu, SINGLESHOT);
       break;
 
     case 3:
-      screenDoubleShot();
+      screenDoubleShot(currentMenu, DOUBLESHOT);
       break;
 
     case 4:
@@ -109,20 +106,19 @@ void renderDisplay()
       break;
 
     default:
-      screenManualGrind();
-      // screenDefault(steamState);
+      screenDefault(steamState, currentMenu);
       break;
     }
   }
   else if (currentMenu == 0 && reRenderStream)
   {
     reRenderStream = !reRenderStream;
-    // drawSteam(50, 45, steamState);
+    drawSteam(50, 65, steamState);
   }
   else if (currentMenu == 0 && reRenderStream)
   {
     reRenderStream = !reRenderStream;
-    // drawSteam(50, 45, steamState);
+    drawSteam(50, 65, steamState);
   }
 }
 
@@ -153,7 +149,7 @@ void relayOff()
 void setGrindState()
 {
   ucg.setColor(0, 0, 0);
-  ucg.drawBox(0, 120, 128, 40);
+  ucg.drawBox(0, 120, 128, 20);
 
   if (grindActive)
   {
@@ -163,15 +159,15 @@ void setGrindState()
   }
   else if (!grindActive)
   {
-    ucg.setColor(70, 70, 70);
+    ucg.setColor(255, 0, 0);
     if (currentMenu == 1)
     {
-      ucg.setPrintPos(27, 150);
+      ucg.setPrintPos(27, 130);
       ucg.print("Hold to grind");
     }
     else
     {
-      ucg.setPrintPos(25, 150);
+      ucg.setPrintPos(25, 130);
       ucg.print("Press to start");
     }
   }
@@ -237,28 +233,6 @@ void setup(void)
   currentMillis = millis();
 }
 
-bool checkMenueFallback()
-{
-  if (!inQuickSettings && !grindActive && !inGrindMode && !returnToStarMenu)
-  {
-    returnToStarMenu = true;
-    menueMillis = millis();
-  }
-  if (inQuickSettings || grindActive || inGrindMode)
-  {
-    returnToStarMenu = false;
-  }
-
-  if (returnToStarMenu && (menueMillis -  previousMenueMillis > menueInterval))
-  {
-    menueMillis = currentMillis;
-    return true;
-  }
-  else
-  {
-    return false;
-  }
-}
 
 void loop(void)
 {
@@ -268,12 +242,6 @@ void loop(void)
     encoderValue = encoder->getValue();
   }
   encoderButton = encoder->getButton();
-
-  // checkMenueFallback() ? currentMenu = currentMenu : currentMenu = 0;
-  // if (checkMenueFallback())
-  // {
-  //   currentMenu = 0;
-  // }
 
   switch (currentMenu)
   {
