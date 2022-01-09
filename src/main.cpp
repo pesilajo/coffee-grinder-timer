@@ -31,12 +31,19 @@
 // EEPROM Locations
 #define EEPROM_LOC_SINGLESHOT 20
 #define EEPROM_LOC_DOUBLESHOT 40
+#define EEPROM_LOC_SINGLESHOT_USER2 60
+#define EEPROM_LOC_DOUBLESHOT_USER2 80
 
 // Default grind times
 uint16_t SINGLESHOT = 8000;  // Max 65,535 milliseconds because of datatype
 uint16_t SINGLESHOT_TEMP;    // Max 65,535 milliseconds because of datatype
 uint16_t DOUBLESHOT = 15000; // Max 65,535 millisecond because of datatype
 uint16_t DOUBLESHOT_TEMP;    // Max 65,535 milliseconds because of datatype
+
+uint16_t SINGLESHOT_USER2 = 8000; // Max 65,535 milliseconds because of datatype
+// uint16_t SINGLESHOT_TEMP_USER2;    // Max 65,535 milliseconds because of datatype
+uint16_t DOUBLESHOT_USER2 = 15000; // Max 65,535 millisecond because of datatype
+// uint16_t DOUBLESHOT_TEMP_USER2;    // Max 65,535 milliseconds because of datatype
 
 // States
 uint8_t prevMenu = 255;      // High number to ensure that start screen gets drawn
@@ -47,6 +54,7 @@ uint8_t inGrindMode = 0;     // Bool
 uint8_t showValue = 0;       // Bool
 bool steamState = false;
 bool reRenderStream = false;
+uint8_t user = 1;
 
 uint8_t grindActive = false; // Bool -> Is grinder currently grinding?
 bool returnToStarMenu = false;
@@ -70,7 +78,7 @@ void timerIsr()
   encoder->service();
 }
 
-void renderDisplay()
+void renderDisplay(uint8_t user)
 {
   if (prevMenu != currentMenu)
   {
@@ -79,18 +87,22 @@ void renderDisplay()
     {
     case 0:
       screenDefault(steamState, currentMenu);
+      drawUser(user);
       break;
 
     case 1:
       screenManualGrind(currentMenu);
+      drawUser(user);
       break;
 
     case 2:
       screenSingleShot(currentMenu, SINGLESHOT);
+      drawUser(user);
       break;
 
     case 3:
       screenDoubleShot(currentMenu, DOUBLESHOT);
+      drawUser(user);
       break;
 
     case 4:
@@ -107,8 +119,10 @@ void renderDisplay()
 
     default:
       screenDefault(steamState, currentMenu);
+      drawUser(user);
       break;
     }
+    
   }
   else if (currentMenu == 0 && reRenderStream)
   {
@@ -126,11 +140,11 @@ void writeToEEPROM(uint8_t location)
 {
   uint16_t tempEEPROMVal;
   EEPROM.get(location, tempEEPROMVal);
-  if (location == EEPROM_LOC_SINGLESHOT && tempEEPROMVal != SINGLESHOT)
+  if ((location == EEPROM_LOC_SINGLESHOT || location == EEPROM_LOC_SINGLESHOT_USER2) && tempEEPROMVal != SINGLESHOT)
   {
     EEPROM.put(location, SINGLESHOT);
   }
-  else if (location == EEPROM_LOC_DOUBLESHOT && tempEEPROMVal != DOUBLESHOT)
+  else if ((location == EEPROM_LOC_DOUBLESHOT || location == EEPROM_LOC_DOUBLESHOT_USER2) && tempEEPROMVal != DOUBLESHOT)
   {
     EEPROM.put(location, DOUBLESHOT);
   }
@@ -207,6 +221,22 @@ void startGrind(uint16_t grindTime)
   }
 }
 
+void readEEprom(uint8_t user)
+{
+  if (user == 1)
+  {
+    EEPROM.get(EEPROM_LOC_SINGLESHOT, SINGLESHOT);
+    EEPROM.get(EEPROM_LOC_DOUBLESHOT, DOUBLESHOT);
+  }
+  else
+  {
+    EEPROM.get(EEPROM_LOC_SINGLESHOT_USER2, SINGLESHOT);
+    EEPROM.get(EEPROM_LOC_DOUBLESHOT_USER2, DOUBLESHOT);
+  }
+  SINGLESHOT_TEMP = SINGLESHOT;
+  DOUBLESHOT_TEMP = DOUBLESHOT;
+}
+
 void setup(void)
 {
   Serial.begin(115200);
@@ -222,17 +252,19 @@ void setup(void)
   pinMode(RELAY, OUTPUT);
   relayOff();
 
-  // Read EEPROM
-  EEPROM.get(EEPROM_LOC_SINGLESHOT, SINGLESHOT);
-  EEPROM.get(EEPROM_LOC_DOUBLESHOT, DOUBLESHOT);
-  SINGLESHOT_TEMP = SINGLESHOT;
-  DOUBLESHOT_TEMP = DOUBLESHOT;
+  readEEprom(user);
 
   Timer1.initialize(1000);
   Timer1.attachInterrupt(timerIsr);
   currentMillis = millis();
 }
 
+void changeUser()
+{
+  user == 1 ? user = 2 : user = 1;
+  drawUser(user);
+  readEEprom(user);
+}
 
 void loop(void)
 {
@@ -248,6 +280,10 @@ void loop(void)
   case 0: // START SCREEN
     if (!inQuickSettings)
     {
+      if (encoderButton == 5)
+      {
+        changeUser();
+      }
       if (encoderValue > 0)
       {
         currentMenu = 1;
@@ -264,7 +300,7 @@ void loop(void)
         reRenderStream = !reRenderStream;
       }
     }
-    renderDisplay();
+    renderDisplay(user);
     break;
 
   case 1: // MANUAL GRIND
@@ -292,7 +328,7 @@ void loop(void)
         currentMenu = 0;
       }
     }
-    renderDisplay();
+    renderDisplay(user);
     break;
 
   case 2: // SINGLE SHOT
@@ -324,7 +360,7 @@ void loop(void)
         currentMenu = 4;
       }
     }
-    renderDisplay();
+    renderDisplay(user);
     break;
 
   case 3: // DOUBLE SHOT
@@ -356,7 +392,7 @@ void loop(void)
         currentMenu = 4;
       }
     }
-    renderDisplay();
+    renderDisplay(user);
     break;
 
   case 4: // QUICK SETTINGS
@@ -397,7 +433,7 @@ void loop(void)
       if (encoderButton == 5)
       { // CLICK --> SAVE SETTINGS
         SINGLESHOT = SINGLESHOT_TEMP;
-        writeToEEPROM(EEPROM_LOC_SINGLESHOT);
+        user == 1 ? writeToEEPROM(EEPROM_LOC_SINGLESHOT) : writeToEEPROM(EEPROM_LOC_SINGLESHOT_USER2);
         inQuickSettings = false;
         currentMenu = 5;
         showValue = false;
@@ -450,7 +486,7 @@ void loop(void)
       if (encoderButton == 5)
       { // CLICK --> SAVE SETTINGS
         DOUBLESHOT = DOUBLESHOT_TEMP;
-        writeToEEPROM(EEPROM_LOC_DOUBLESHOT);
+        user == 1 ? writeToEEPROM(EEPROM_LOC_DOUBLESHOT) : writeToEEPROM(EEPROM_LOC_DOUBLESHOT_USER2);
         inQuickSettings = false;
         currentMenu = 5;
         showValue = false;
@@ -466,17 +502,17 @@ void loop(void)
         encoder->setAccelerationEnabled(false);
       }
     }
-    renderDisplay();
+    renderDisplay(user);
     break;
 
   case 5: // QUICK SETTINGS SAVED
-    renderDisplay();
+    renderDisplay(user);
     delay(1500);
     currentMenu = realPrevMenu;
     break;
 
   case 6: // QUICK SETTINGS CANCELLED
-    renderDisplay();
+    renderDisplay(user);
     delay(1500);
     currentMenu = realPrevMenu;
     break;

@@ -113,7 +113,8 @@ void drawMug(uint8_t xPos, uint8_t yPos, bool steamState)
   ucg.drawBox(xPos + 8, yPos + 11, 8, 5);
 
   // 2. ring
-  ucg.setColor(81, 141, 193);
+  // ucg.setColor(81, 141, 193);
+  ucg.setColor(255, 255, 255);
   ucg.drawBox(xPos + 0, yPos + 12, 1, 5);
   ucg.drawBox(xPos + 23, yPos + 12, 1, 5);
 
@@ -145,7 +146,8 @@ void drawMug(uint8_t xPos, uint8_t yPos, bool steamState)
   ucg.drawBox(xPos + 8, yPos + 21, 8, 5);
 
   // 4. ring
-  ucg.setColor(81, 141, 193);
+  // ucg.setColor(81, 141, 193);
+  ucg.setColor(255, 255, 255);
   ucg.drawBox(xPos + 0, yPos + 22, 1, 5);
   ucg.drawBox(xPos + 23, yPos + 22, 1, 5);
 
@@ -382,12 +384,23 @@ void clearProgress()
 
 void clearHalfBottom()
 {
-    ucg.setColor(0, 0, 0);
+  ucg.setColor(0, 0, 0);
   ucg.drawBox(1, 81, 126, 78);
 
   ucg.setColor(255, 0, 0);
   ucg.drawFrame(0, 80, 128, 80);
-
+}
+void drawUser(uint8_t user)
+{
+  user == 1 ? ucg.setColor(255, 0, 0) : ucg.setColor(28, 159, 101);
+  ucg.drawDisc(115, 148, 10, UCG_DRAW_ALL);
+  ucg.setColor(0, 255, 255, 255);
+  user == 1 ? ucg.setColor(1, 255, 0, 0) : ucg.setColor(1, 28, 159, 101);
+  ucg.setPrintPos(111, 154);
+  ucg.setFont(ucg_font_helvB12_hr);
+  ucg.print(user);
+  resetColor();
+  ucg.setFont(ucg_font_6x10_tr);
 }
 
 void screenDefault(bool steamState, uint8_t currentMenu)
@@ -443,7 +456,6 @@ void screenSingleShot(uint8_t currentMenu, uint16_t time)
   ucg.print(" s");
   ucg.setFont(ucg_font_6x10_tr);
 
-
   ucg.setColor(255, 0, 0);
   ucg.setPrintPos(25, 130);
   ucg.print("Press to start");
@@ -462,7 +474,7 @@ void screenDoubleShot(uint8_t currentMenu, uint16_t time)
   drawBean(30, 50);
   drawBean(70, 54);
 
-   float seconds = (float)time / 1000;
+  float seconds = (float)time / 1000;
   ucg.setPrintPos(40, 110);
   ucg.setColor(0, 255, 0);
   ucg.setFont(ucg_font_9x18B_mf);
@@ -509,7 +521,7 @@ void screenQuickSettings()
 {
   clearHalfBottom();
   ucg.setColor(255, 255, 255);
-  ucg.setPrintPos(40, 110);
+  ucg.setPrintPos(40, 110);  
   ucg.print("SET TIME");
 }
 
