@@ -23,6 +23,9 @@
 #include <TimerOne.h>
 #include "display.h"
 
+#include <HX711_ADC.h>
+#include <EEPROM.h>
+
 // Relay settings
 #define RELAY 2 // Relay on pin D2
 #define RELAY_ON HIGH
@@ -33,6 +36,25 @@
 #define EEPROM_LOC_DOUBLESHOT 40
 #define EEPROM_LOC_SINGLESHOT_USER2 60
 #define EEPROM_LOC_DOUBLESHOT_USER2 80
+
+// pins for HX711:
+const int HX711_dout = 10;          // mcu > HX711 dout pin
+const int HX711_sck = 8;            // mcu > HX711 sck pin
+const int serialPrintInterval = 15; // increase value to slow down serial print/BLE activity
+// Var for calibration and t for timer
+const int calVal_eepromAdress = 0;
+unsigned long t = 0;
+float newMass = 0.0;
+float error = 0.04;
+float fudge = 1;    // fudge factor for hysteresis: increase if too heavy
+bool state = 0;     // state variable, 0 = off, 1 = on
+float target = 0.0; // initial target weight for grinder
+
+// Trickle Variables
+const unsigned long bump = 100;    // trickle time
+const unsigned long settle = 2000; // settling time
+unsigned long tt = 0;              // timer for settling
+bool isSettle = true;
 
 // Default grind times
 uint16_t SINGLESHOT = 8000;  // Max 65,535 milliseconds because of datatype
@@ -58,7 +80,7 @@ uint8_t user = 1;
 
 uint8_t grindActive = false; // Bool -> Is grinder currently grinding?
 bool returnToStarMenu = false;
-uint32_t grindUntil = 0;
+// uint32_t grindUntil = 0;
 
 uint32_t currentMillis = 0;
 uint32_t previousMillis = 0; // will store last time
@@ -72,6 +94,9 @@ ClickEncoder *encoder;
 
 int8_t encoderValue = 0;
 uint8_t encoderButton = 0;
+
+// HX711 constructor:
+HX711_ADC LoadCell(HX711_dout, HX711_sck);
 
 void timerIsr()
 {
@@ -122,7 +147,6 @@ void renderDisplay(uint8_t user)
       drawUser(user);
       break;
     }
-    
   }
   else if (currentMenu == 0 && reRenderStream)
   {
@@ -187,36 +211,67 @@ void setGrindState()
   }
 }
 
-void startGrind(uint16_t grindTime)
+void startGrind(uint16_t target)
 {
-  if (!grindActive)
-  { // START GRINDING
-    grindUntil = millis() + grindTime;
+  if (!grindActive) // START GRINDING
+  {
+    float i = LoadCell.getData();
+    newMass = i;
+
     grindActive = true;
     setGrindState();
     relayOn();
+
+    // scale
+    Serial.print("Motor Running. Target = " + String(target) + "  Current = " + String(newMass) + "\n");
   }
-  else if (grindActive && millis() < grindUntil)
-  { // WHILE GRINDING
-    if (encoderButton == 5)
-    { // CLICK --> CANCEL GRINDING WHILE GRINDING
-      grindUntil = 0;
-      relayOff();
-    }
-    uint16_t timePassed = grindTime - (grindUntil - millis());
-    timePassed = map(timePassed, 0, grindTime, 0, 128);
-    drawProgress(timePassed);
-  }
-  else
+  else if (newMass >= target + error) // GRINDING ENDED - check if the weight is equal to or larger than goal (with some rounding error)
   {
-    if (millis() > grindUntil)
-    { // GRINDING ENDED
-      relayOff();
-      grindUntil = 0;
-      grindActive = false;
-      inGrindMode = false;
-      setGrindState();
-      clearProgress();
+    relayOff();
+    grindActive = false;
+    inGrindMode = false;
+    Serial.print("Motor Off. Target = " + String(target) + "  Current = " + String(newMass) + "\n");
+    setGrindState();
+    clearProgress();
+  }
+
+  else
+
+  {
+    if (target > (newMass + fudge)) // WHILE GRINDING
+    // if (grindActive && (target > (newMass + fudge))) // WHILE GRINDING
+    // if (grindActive && millis() < grindUntil)
+    {
+      if (encoderButton == 5) // CLICK --> CANCEL GRINDING WHILE GRINDING
+      {
+        relayOff();
+        Serial.print("Motor Off. Target = " + String(target) + "  Current = " + String(newMass) + "\n");
+      }
+
+      uint16_t actMass = target - newMass;
+      actMass = map(actMass, 0, target, 0, 128);
+      drawProgress(actMass);
+    }
+    else
+    { // If we are close to our target (less than fudge factor)
+      if (isSettle)
+      {             // Do we need to let the reading settle? (starts as "true")
+        relayOff(); // if yes, turn the motor off for our settling time
+        if (millis() - tt >= settle)
+        {                   // if we've waited long enough
+          tt = millis();    // reset the time
+          isSettle = false; // we're done settling
+        }
+      }
+      else
+      {            // if we are done waiting to settle
+        relayOn(); // turn the motor on
+        if (millis() - tt >= bump)
+        {                  // but just for our bump time
+          tt = millis();   // reset the timer
+          isSettle = true; // then go back to settling so we can check the weight
+        }
+      }
     }
   }
 }
@@ -247,6 +302,55 @@ void setup(void)
 
   // Initialise the ClickEndoder
   encoder = new ClickEncoder(A1, A0, A2);
+
+  LoadCell.begin();
+  // LoadCell.setReverseOutput(); //uncomment to turn a negative output value to positive
+  float calibrationValue;      // calibration value (see example file "Calibration.ino")
+  calibrationValue = -2137.60; // uncomment this if you want to set the calibration value in the sketch
+#if defined(ESP8266) || defined(ESP32)
+  // EEPROM.begin(512); // uncomment this if you use ESP8266/ESP32 and want to fetch the calibration value from eeprom
+#endif
+  // EEPROM.get(calVal_eepromAdress, calibrationValue); // uncomment this if you want to fetch the calibration value from eeprom
+
+  unsigned long stabilizingtime = 2000; // preciscion right after power-up can be improved by adding a few seconds of stabilizing time
+  boolean _tare = true;                 // set this to false if you don't want tare to be performed in the next step
+  LoadCell.start(stabilizingtime, _tare);
+  if (LoadCell.getTareTimeoutFlag())
+  {
+    Serial.println("Timeout, check MCU>HX711 wiring and pin designations");
+    // display.clearDisplay();
+    // display.setTextSize(1);
+    // display.setTextColor(WHITE);
+    // display.setCursor(0, 10);
+    // display.println("Timeout, check MCU>HX711 wiring and pin designations");
+    // display.display();
+    while (1)
+      ;
+  }
+  else
+  {
+    LoadCell.setCalFactor(calibrationValue); // set calibration value (float)
+    Serial.println("Startup is complete");
+    // display.clearDisplay();
+    // display.setTextSize(1);
+    // display.setTextColor(WHITE);
+    // display.setCursor(0, 10);
+    // display.println("Load Cell Ok");
+    // display.display();
+  }
+
+  // begin BLE initialization
+  // if (!BLE.begin()) {
+  //   Serial.println("BLE failed to start!");
+  //   display.clearDisplay();
+  //   display.setTextSize(1);
+  //   display.setTextColor(WHITE);
+  //   display.setCursor(0, 10);
+  //   display.println("BLE failed to start!");
+  //   display.display();
+  //   while (1)
+  //  ;
+  // }
 
   // Initialise the Arduino data pins for OUTPUT
   pinMode(RELAY, OUTPUT);
